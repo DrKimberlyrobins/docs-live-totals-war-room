@@ -1,16 +1,12 @@
 # Verification and deployment status
 
-The application is implemented locally, not deployed to GitHub Pages.
+Published and browser-verified on November 5, 2026:
+https://drkimberlyrobins.github.io/docs-live-totals-war-room/
 
-- 17 automated tests pass: NBA/college clocks, OT periods, possession fallback, 10,000 samples, probability operators, market-price independence, complementary order-book execution/depth, fees, date-and-league matching, period-market separation, append-only persistence, deduplication, postgame grading without forecast rewriting, summary clock parsing, NBA vs college feed filtering, and versioned official settlement terms.
-- Browser verified locally: real-data board renders; Live filter; Forecast archive displays saved UTC records; stale snapshot warning; no verified recommendation appears.
-- Mobile CSS is implemented. A phone viewport has not been visually tested.
-- No production URL has been verified. GitHub rejected the secure browser sign-in with “Incorrect username or password.” The available GitHub connector has no repository-creation or Pages-configuration tools, so account sign-in remains necessary to create this separate repository.
-- API requests retrieve real data. Authorization/licensing and latency guarantees for ESPN's undocumented public website feeds remain unverified. Kalshi's official public read-only market API is connected.
-- Forecasts use experimental league priors. Team-specific ratings, lineup verification, period-specific models and held-out calibration remain incomplete.
-- Contract overtime treatment must be verified before computing probabilities and EV. The official API-linked PDF was reviewed and is hash-checked by subsequent collections. The first saved collection retained unknown treatment and is not rewritten.
-- Scheduled refresh is a best-effort five-minute GitHub Actions workflow, not a continuously running live backend. Production scheduling has not been enabled or tested because deployment is blocked.
+The GitHub Pages deployment and hosted collector both completed successfully. All 17 automated tests passed in GitHub Actions. The published board loaded real schedule and Kalshi data. First hosted collection at 2026-11-05T08:20:12.377740Z: 188 games in the three-day window, 938 open scoring markets retrieved, 855 matched contracts, 11 saved experimental forecasts and 11 final-score grades. Mean absolute error across those 11 forecast snapshots: 12.3 points. Multiple snapshots per game are correlated; this is not held-out validation. No verified paper position has been opened; no trading returns or probability calibration are claimed.
 
-The source checkout contains the complete first implementation, source data snapshot, immutable forward experimental forecasts, and deploy workflows. Existing NBA and CBB war rooms were not accessed or modified.
+Implemented: automatic schedule/score board, independent 10,000-run live simulations, full-game quote comparison with version-checked settlement rules, append-only forward experimental archive, separate postgame grading, desktop browser verification, GitHub scheduled collection and Pages publication.
 
-Second real-data collection: 2026-11-05T04:12:45.598597Z. NBA schedule ingestion confirmed. 607 NBA and 537 college scoring contracts matched; 11 saved experimental forecasts, including five NBA. 113 full-game executable YES order-book quotes retrieved. Old snapshots and records remain unchanged when settlement verification is improved.
+Remaining limitations: uncalibrated league priors rather than verified team efficiencies, unverified lineup/rotation impact, undocumented ESPN feed latency/licensing, five-minute best-effort scheduled snapshots rather than continuous ingestion, no dedicated quarter/half simulation, no validated edge recommendations, and phone-viewport visual QA pending. Data older than 90 seconds is flagged stale. All recommendations remain NO VERIFIED EDGE while these critical requirements are unresolved.
+
+No existing NBA or college war room was modified.
