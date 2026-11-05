@@ -26,6 +26,7 @@ jobs:
       - name: Refresh tennis discovery board
         run: python tennis.py
         env:
+          API_TENNIS_KEY: ${{ secrets.API_TENNIS_KEY }}
           SPORTRADAR_TENNIS_API_KEY: ${{ secrets.SPORTRADAR_TENNIS_API_KEY }}
           SPORTRADAR_TENNIS_ACCESS_LEVEL: ${{ vars.SPORTRADAR_TENNIS_ACCESS_LEVEL || 'trial' }}
       - name: Preserve immutable forecast evidence

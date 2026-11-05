@@ -68,6 +68,24 @@ def run(date=None):
  forecasts=read_rows(forecast_path);seen={f['fingerprint'] for f in forecasts}
  try:payload,provider=fetch_live(utc())
  except Exception as e:payload=None;provider={'connected':False,'status':str(e)};errors.append('Point-level provider unavailable: '+str(e))
+ # API Tennis is independently connected, with missing source latency kept explicit.
+ from api_tennis import fetch as fetch_api,find as find_api,evidence as api_evidence
+ try:
+  api_rows,api_status=fetch_api();api_captured=utc()
+  if api_rows is not None:
+   provider=api_status;provider['captured_at']=api_captured
+   for game in matches:
+    if game['state']!='in':continue
+    try:
+     row,order=find_api(api_rows,game);ev=api_evidence(row,order,api_captured)
+     game['live_evidence']=ev;game['captured_at']=api_captured
+     if ev['set_scores'] and all(ev['set_scores']):
+      game['set_scores']=ev['set_scores'];game['completed_games']=sum(map(sum,ev['set_scores']))
+     game['notes'].append('API Tennis live server and point evidence retrieved; source-origin update time unavailable')
+     game['prediction_status']='Live API Tennis connected. Automatic recommendation blocked: source-origin latency and match format not verified. Player picker accepts checked inputs.'
+    except ValueError as e:game['notes'].append(str(e))
+   provider['matched_live_games']=sum('live_evidence' in g for g in matches)
+ except Exception as e:errors.append(str(e));provider={'connected':False,'status':str(e)}
  for match in matches:
   if match['state']!='in' or payload is None:continue
   try:
@@ -103,6 +121,6 @@ def run(date=None):
   grade={'fingerprint':record['fingerprint'],'graded_at':utc(),'winner':record['players'][winner],'actual_games':actual,'total_error':record['projection']['mean']-actual,'match_brier':(1-p)**2,'favorite_correct':p>.5,'source':final['source'],'paper_profit':None}
   with grade_path.open('a') as f:f.write(json.dumps(grade,separators=(',',':'))+'\n')
   grades.append(grade)
- result={'generated_at':utc(),'date':date.isoformat(),'matches':sorted(matches,key=lambda x:({'in':0,'pre':1,'post':2}.get(x['state'],3),x['date'])),'market_count':len(markets),'matched_count':sum(len(m['contracts']) for m in matches),'unmatched_contracts':unmatched,'errors':errors,'simulations_completed':sum(g['simulations_completed'] for g in matches),'paper_positions':0,'provider':provider,'forecast_count':len(forecasts),'grading':{'count':len(grades),'rows':grades},'limitations':['Independent 10,000-run player and totals engine is available in manual-input mode; automatic live provider access is not connected','ESPN website-feed licensing, latency and serving semantics are unverified','Sportradar live timelines investigated but not connected; authenticated provider access is required','Browser analyses are conditional on supplied inputs and remain separate from repository paper results','Retirements may resolve some contracts to a fair price rather than a binary win or loss']}
+ result={'generated_at':utc(),'date':date.isoformat(),'matches':sorted(matches,key=lambda x:({'in':0,'pre':1,'post':2}.get(x['state'],3),x['date'])),'market_count':len(markets),'matched_count':sum(len(m['contracts']) for m in matches),'unmatched_contracts':unmatched,'errors':errors,'simulations_completed':sum(g['simulations_completed'] for g in matches),'paper_positions':0,'provider':provider,'forecast_count':len(forecasts),'grading':{'count':len(grades),'rows':grades},'limitations':['Independent 10,000-run engine is available; API Tennis evidence is gated on source latency and verified scoring format','ESPN website-feed licensing, latency and serving semantics are unverified','Sportradar live timelines investigated but not connected; authenticated provider access is required','Browser analyses are conditional on supplied inputs and remain separate from repository paper results','Retirements may resolve some contracts to a fair price rather than a binary win or loss']}
  out=ROOT/'data';out.mkdir(exist_ok=True);(out/'tennis.json').write_text(json.dumps(result,separators=(',',':')));print(json.dumps({k:result[k] for k in ['generated_at','market_count','matched_count','errors']}));return result
 if __name__=='__main__':run()
