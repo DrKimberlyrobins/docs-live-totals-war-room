@@ -4,11 +4,13 @@ Separate read-only NBA and NCAA men's basketball totals research application.
 
 ## Current status
 
+**Published:** https://drkimberlyrobins.github.io/docs-live-totals-war-room/ — verified in the browser on November 5, 2026. GitHub Pages deployment and the hosted collector succeeded; all 17 hosted tests passed. The first hosted run graded all 11 saved experimental forecasts (MAE 12.3 points across correlated snapshots; not held-out validation). Remaining model limitations below still apply.
+
 Implemented: automatic three-day ESPN schedule board; live scores and clocks; box-score statistics; estimated possessions and pace; separate NBA / college game rules; actual 10,000-run independent simulations; official Kalshi series discovery, conservative date-and-team matching, market-type separation, exact rule display, order books, one-contract VWAP and fee calculation; immutable deduplicated forward experimental forecast records; separate final-score grading and contract settlement checks; responsive dashboard and archive; GitHub Actions collector and Pages deployment workflows.
 
 **Not a validated betting model. No verified recommendations are emitted.** No real money orders or credentials are used. Unknown overtime settlement rules block contract probabilities and EV. A model distribution can still be inspected as experimental game analysis. The first collection did not yet include linked PDF-term verification and retained unknown overtime treatment; those immutable records remain unchanged. Subsequent collections verify the exact official PDF hash before using its overtime defaults.
 
-Not implemented/verified: licensed low-latency score feed, guaranteed source freshness, exact play-by-play possession counts, verified team pregame efficiencies, injuries/lineups/rotation adjustments, current-period fouls and bonus, separate quarter/half distributions, dedicated final-five-minute validation, held-out calibration, continuous backend service, production deployment and phone-viewport QA, GitHub-hosted deployment. No paper positions have been opened, so no returns are claimed. Live contract matching is implemented; team and period markets are shown but never substituted for full-game markets.
+Not implemented/verified: licensed low-latency score feed, guaranteed source freshness, exact play-by-play possession counts, verified team pregame efficiencies, injuries/lineups/rotation adjustments, current-period fouls and bonus, separate quarter/half distributions, dedicated final-five-minute validation, held-out calibration, continuous backend service, production deployment and phone-viewport QA . No paper positions have been opened, so no returns are claimed. Live contract matching is implemented; team and period markets are shown but never substituted for full-game markets.
 
 ## Run locally
 
@@ -22,7 +24,7 @@ python -m http.server 8000
 
 Serve the repository and open index.html. The UI checks the saved snapshot every 30 seconds; this does not cause new source ingestion. Snapshot age >90 seconds is marked stale. Source-origin latency remains unknown at every age and blocks all recommendations.
 
-## GitHub deployment
+## GitHub deployment (already completed)
 
 Create a new repository named `docs-live-totals-war-room` under `DrKimberlyrobins` and push this checkout's main branch. In repository Settings → Pages select **GitHub Actions** as the source. Run **Deploy GitHub Pages**, then **Collect live basketball evidence**. The expected Pages address is not considered verified until deployment succeeds.
 
