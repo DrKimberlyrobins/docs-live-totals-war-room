@@ -38,10 +38,10 @@ class CollectionTests(unittest.TestCase):
  def test_forward_persistence_and_grading_without_rewrite(self):
   import collect,datetime as dt
   from unittest.mock import patch
-  g={'id':'integration','league':'nba','name':'A at B','date':'2026-11-05T01:00Z','state':'in','period':2,'clock_seconds':0,'clock':'0:00','scores':[55,52],'stats':[],'aliases':[['Alpha'],['Bravo']],'contracts':[],'missing':[],'source':'fixture://scoreboard','status':'Halftime'}
+  g={'id':'integration','league':'nba','name':'A at B','date':'2026-11-05T01:00Z','state':'in','period':2,'clock_seconds':0,'clock':'0:00','scores':[10,10],'stats':[{'fieldGoalsMade-fieldGoalsAttempted':'4-10','threePointFieldGoalsMade-threePointFieldGoalsAttempted':'0-2','freeThrowsMade-freeThrowsAttempted':'2-2'}]*2,'aliases':[['Alpha'],['Bravo']],'contracts':[],'missing':[],'source':'fixture://scoreboard','status':'Halftime'}
   with tempfile.TemporaryDirectory() as d:
    def board(l,date):return [copy.deepcopy(g)] if l=='nba' and date=='20261104' else []
-   with patch.object(collect.urllib.request,'urlopen',side_effect=RuntimeError('fixture: terms unavailable')),patch.object(collect,'ROOT',pathlib.Path(d)),patch.object(collect,'scoreboard',side_effect=board),patch.object(collect,'summary',side_effect=lambda x:x),patch.object(collect,'get',return_value={'series':[]}):
+   with patch.object(collect.urllib.request,'urlopen',side_effect=RuntimeError('fixture: terms unavailable')),patch.object(collect,'ROOT',pathlib.Path(d)),patch.object(collect,'scoreboard',side_effect=board),patch.object(collect,'summary',side_effect=lambda x:(x.update(score_captured_at=collect.utc(),stats_captured_at=collect.utc()) or x)),patch.object(collect,'get',return_value={'series':[]}):
     collect.run(dt.date(2026,11,4));p=pathlib.Path(d)/'data/forecasts.jsonl';first=p.read_bytes()
     collect.run(dt.date(2026,11,4));self.assertEqual(first,p.read_bytes())
     g.update(state='post',period=4,scores=[110,105]);collect.run(dt.date(2026,11,4));self.assertEqual(first,p.read_bytes())

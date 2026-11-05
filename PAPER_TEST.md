@@ -1,0 +1,11 @@
+# Prospective experimental paper test
+
+The Paper test tab is a permanent, read-only view of entries made by the collector. It never places real orders. Last night's forecast-only records are not converted into bets.
+
+Policy paper-v1 is saved inside every entry: one contract, at most one entry per game across the ledger, full-game totals only, modeled probability at least 55%, net expected profit at least $0.03 after the quoted fee. Select the highest net EV among qualifying sampled quotes. Require consistent scores and shooting-derived points, 10,000 completed simulations, game captures at most 60 seconds old, fresh market metadata and book captures at most 30 seconds old, adequate quoted quantity, active market/game state, and verified settlement semantics. Reject entries too close to the end of the current game segment for the capture age. Other scopes and uncertain settlements remain unsupported.
+
+Game snapshots are refreshed after market discovery. Book and market metadata are retrieved near forecast calculation. Capture time is distinct from market last-change time. Unknown source-origin latency remains explicitly disclosed. These are uncalibrated, experimental paper selections, not verified betting recommendations or guaranteed fills. Team priors and lineup inputs remain incomplete. Best-effort five-minute GitHub polling is not continuous live ingestion; stale/inconsistent inputs prevent entries.
+
+Entries append to data/paper_positions.jsonl. Grades append separately to data/paper_results.jsonl, using the official finalized Kalshi YES/NO result. Unsupported/nonbinary settlement remains pending review rather than being forced into a win/loss. A recorded settlement earlier than the entry is rejected. No historical entries are backfilled, and no original forecast or position is edited after the outcome.
+
+Displayed performance: wins, losses, pending entries, win rate, net hypothetical profit after recorded fees, ROI on settled entry costs, modeled expected profit for settled positions, and Brier score. Positions are one-contract hypothetical purchases held to settlement. There is no real execution, fill confirmation, exit strategy or simulated early cash-out. The ledger cannot establish an attainable trading profit or a calibrated edge by itself.

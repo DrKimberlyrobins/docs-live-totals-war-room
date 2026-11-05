@@ -48,6 +48,7 @@ def summary(game):
    game.update(scores=[int(ts[i].get('score',0)) for i in game['team_ids']],period=st.get('period',0),clock=st.get('displayClock'),clock_seconds=clock_seconds(st),state=st['type']['state'],status=st['type']['detail'],linescores=[[float(x.get('value',x.get('displayValue',0))) for x in ts[i].get('linescores',[])] for i in game['team_ids']])
   stats={t['team']['id']:{s['name']:s['displayValue'] for s in t.get('statistics',[])} for t in d.get('boxscore',{}).get('teams',[])}
   game['stats']=[stats.get(i,{}) for i in game['team_ids']];game['stats_captured_at']=utc();game['stats_source']=url
+  if st and all(i in ts for i in game['team_ids']):game['score_captured_at']=game['stats_captured_at']
   if not all(possession(x,game['league']) is not None for x in game['stats']):game['missing'].append('Live possession inputs')
   game['stats_source_updated_at']=d.get('meta',{}).get('lastUpdated')
  except Exception as e:game['missing'].append('Box score: '+str(e))
@@ -65,7 +66,7 @@ def run(date):
    try:games+=f.result()
    except Exception as e:errors.append(f'Scoreboard {key}: {e}')
   active=[g for g in games if g['state']=='in']
-  for g in pool.map(summary,active):pass
+  # Refresh each active snapshot only after market discovery, immediately before simulation.
  # Discover series instead of assuming every scoring market is a full-game total.
  markets=[];series=[];terms_verified=False
  try:
@@ -86,35 +87,37 @@ def run(date):
  for m in markets:
   candidates=[g['id'] for g in games if matches(g,m)]
   if len(candidates)==1:matching[m['ticker']]=candidates[0]
- books={}
- active_tickers=[]
- # Bound read volume: retrieve depth for the eight nearest full-game thresholds per active game.
- # All matching contracts remain visible with their market quote fields.
- for g in games:
-  if g['state']!='in':continue
-  try:preview=simulate(g)
-  except Exception:preview=None
-  target=preview['mean'] if preview else sum(g['scores'])
-  candidates=[m for m in markets if contract_type(m['ticker'])=='full' and matching.get(m['ticker'])==g['id']]
-  candidates.sort(key=lambda m:abs(float(m.get('floor_strike') or 0)-target))
-  active_tickers.extend(m['ticker'] for m in candidates[:8])
- def fetch_book(ticker):
-  return get(API+'/markets/'+urllib.parse.quote(ticker,safe='')+'/orderbook'),utc()
- with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-  jobs={pool.submit(fetch_book,t):t for t in active_tickers}
-  for f,t in jobs.items():
-   try:books[t]=f.result()
-   except Exception as e:books[t]=(None,str(e))
  archive=out/'forecasts.jsonl' 
  old=[]
  if archive.exists():old=[json.loads(x) for x in archive.read_text().splitlines() if x]
  fingerprints={x['fingerprint'] for x in old};new=[]
+ by_ticker={}
+ from paper import choose,input_errors,settlement,save_report
+ paper_path=out/'paper_positions.jsonl';paper_results_path=out/'paper_results.jsonl'
+ paper_path.touch(exist_ok=True);paper_results_path.touch(exist_ok=True)
+ positions=[json.loads(x) for x in paper_path.read_text().splitlines() if x]
  for g in games:
+  if g['state']=='in':summary(g)
   sim=None
-  try:sim=simulate(g) if g['state']=='in' else None
+  try:
+   issues=input_errors(g,utc()) if g['state']=='in' else []
+   if issues:g['missing']+=issues
+   sim=simulate(g) if g['state']=='in' and not issues else None
   except Exception as e:g['missing'].append('Model: '+str(e))
   if sim:g['projection']={k:v for k,v in sim.items() if not k.endswith('samples')}
-  for m in markets:
+  books={}
+  candidates=[m for m in markets if matching.get(m['ticker'])==g['id'] and contract_type(m['ticker'])=='full'] if sim else []
+  candidates.sort(key=lambda m:abs(float(m.get('floor_strike') or 0)-sim['mean']))
+  def fresh_quote(m):
+   ticker=m['ticker'];fresh=get(API+'/markets/'+urllib.parse.quote(ticker,safe=''))['market'];market_captured=utc();book=get(API+'/markets/'+urllib.parse.quote(ticker,safe='')+'/orderbook');captured=utc()
+   return ticker,{**m,**fresh,'captured_at':market_captured},book,captured
+  with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+   for f in [pool.submit(fresh_quote,m) for m in candidates[:8]]:
+    try:
+     ticker,fresh,book,captured=f.result();books[ticker]=(book,captured);by_ticker[ticker]=fresh
+    except Exception as e:g['missing'].append('Fresh quote: '+str(e))
+  for original in markets:
+   m=by_ticker.get(original['ticker'],original)
    if matching.get(m['ticker'])!=g['id']:continue
    typ=contract_type(m['ticker']);rules=m.get('rules_primary','')+'\n'+m.get('rules_secondary','')
    c={k:m.get(k) for k in ['ticker','event_ticker','title','rules_primary','rules_secondary','floor_strike','strike_type','status','updated_time','captured_at','volume_fp','yes_ask_dollars','yes_bid_dollars','no_ask_dollars','no_bid_dollars','fee_type','fee_multiplier']};c['type']=typ
@@ -143,6 +146,8 @@ def run(date):
    if fingerprint not in fingerprints:
     rec={'fingerprint':fingerprint,'timestamp':utc(),'kind':'forward_experimental','game':g,'model_version':VERSION,'simulation':g['projection'],'recommendation':'NO VERIFIED EDGE','paper_position':None}
     append(archive,rec);new.append(rec);fingerprints.add(fingerprint)
+   paper=choose(g,g['projection'],utc(),positions)
+   if paper:append(paper_path,paper);positions.append(paper)
  # Settlements live separately; never overwrite the pre-outcome evidence.
  grades=out/'grades.jsonl';graded=set()
  if grades.exists():graded={json.loads(x)['fingerprint'] for x in grades.read_text().splitlines() if x}
@@ -165,6 +170,14 @@ def run(date):
   if any(c.get('p_yes') is not None for c in rec['game']['contracts']) and len(settlements)<sum(c.get('p_yes') is not None for c in rec['game']['contracts']):continue
   append(grades,grade);all_grades.append(grade)
  board={'generated_at':utc(),'date':date.isoformat(),'model_version':VERSION,'games':games,'errors':errors,'market_count':len(markets),'matched_count':sum(len(g['contracts']) for g in games),'series':[{'ticker':s['ticker'],'title':s['title']} for s in series],'forecast_count':len(old)+len(new),'new_forecasts':len(new),'data_policy':'ESPN public website feed; undocumented API, redistribution/license/SLA not established. No guaranteed live latency. Kalshi official public read-only API.','grading':{'graded_forecasts':len(all_grades),'mae':round(statistics.mean(abs(x['forecast_error']) for x in all_grades),2) if all_grades else None,'brier':statistics.mean(s['brier'] for g in all_grades for s in g['settlements']) if any(g['settlements'] for g in all_grades) else None,'positions':0,'hypothetical_returns':None}}
+ paper_results=[json.loads(x) for x in paper_results_path.read_text().splitlines() if x];settled_ids={r['position_id'] for r in paper_results}
+ for position in positions:
+  if position['position_id'] in settled_ids:continue
+  try:
+   market=get(API+'/markets/'+urllib.parse.quote(position['ticker'],safe=''))['market'];result=settlement(position,market,utc())
+   if result:append(paper_results_path,result);paper_results.append(result)
+  except Exception as e:errors.append('Paper settlement pending: '+str(e))
+ paper_summary=save_report(out);board['paper']={k:v for k,v in paper_summary.items() if k!='rows'}
  from audit import write_review
  write_review(out)
  temp=out/'board.tmp';temp.write_text(json.dumps(board,separators=(',',':')));temp.replace(out/'board.json')
