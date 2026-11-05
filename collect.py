@@ -165,6 +165,8 @@ def run(date):
   if any(c.get('p_yes') is not None for c in rec['game']['contracts']) and len(settlements)<sum(c.get('p_yes') is not None for c in rec['game']['contracts']):continue
   append(grades,grade);all_grades.append(grade)
  board={'generated_at':utc(),'date':date.isoformat(),'model_version':VERSION,'games':games,'errors':errors,'market_count':len(markets),'matched_count':sum(len(g['contracts']) for g in games),'series':[{'ticker':s['ticker'],'title':s['title']} for s in series],'forecast_count':len(old)+len(new),'new_forecasts':len(new),'data_policy':'ESPN public website feed; undocumented API, redistribution/license/SLA not established. No guaranteed live latency. Kalshi official public read-only API.','grading':{'graded_forecasts':len(all_grades),'mae':round(statistics.mean(abs(x['forecast_error']) for x in all_grades),2) if all_grades else None,'brier':statistics.mean(s['brier'] for g in all_grades for s in g['settlements']) if any(g['settlements'] for g in all_grades) else None,'positions':0,'hypothetical_returns':None}}
+ from audit import write_review
+ write_review(out)
  temp=out/'board.tmp';temp.write_text(json.dumps(board,separators=(',',':')));temp.replace(out/'board.json')
  print(json.dumps({k:board[k] for k in ['generated_at','market_count','matched_count','forecast_count','new_forecasts','errors']}))
 if __name__=='__main__':
