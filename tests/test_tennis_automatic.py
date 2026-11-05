@@ -13,6 +13,12 @@ class AutomaticTennisTests(unittest.TestCase):
   ev=evidence(row(),[1,0],'2026-11-05T12:00Z');s,r=state_from_evidence(ev,m)
   self.assertEqual(s['points'],[2,1]);self.assertEqual(s['server'],0);self.assertEqual(s['serveWon'],[22,26]);self.assertEqual(s['completedSets'],[[4,6]])
   ev['statistics']=[];s,r=state_from_evidence(ev,m);self.assertEqual(s['serveTotal'],[0,0]);self.assertTrue(any('prior used' in x for x in r['notes']))
+ def test_tiebreak_annotation_counts_games_only(self):
+  from api_tennis import evidence
+  r=row();r['scores'][0].update(score_first='7.7',score_second='6.5')
+  ev=evidence(r,[0,1],'now');self.assertEqual(ev['set_scores'],[[7,2],[6,3]])
+  s,_=state_from_evidence(ev,{'players':['Amy Alpha','Bea Beta'],'tour':'wta','tournament':'Chennai Open'})
+  self.assertEqual(s['completedSets'],[[7,6]])
  def test_transition_and_suspension(self):
   from api_tennis import evidence
   m={'players':['Amy Alpha','Bea Beta'],'tour':'wta','tournament':'Chennai Open'}
@@ -28,8 +34,8 @@ class AutomaticTennisTests(unittest.TestCase):
   book={'orderbook_fp':{'no_dollars':[['0.60','0.5'],['0.55','2']],'yes_dollars':[['0.50','4']]}}
   q=quote_cost(book,'yes');self.assertAlmostEqual(q['vwap'],.425);self.assertAlmostEqual(q['slippage'],.025)
   c={'scope':'match_completed_games'};v=evaluate(c,.7,book,{'fee_type':'quadratic','fee_multiplier':1})
-  self.assertAlmostEqual(v['sides'][0]['fee'],.02);self.assertAlmostEqual(v['sides'][0]['net_ev'],.255)
-  self.assertEqual(v['model_price_preference'],'OVER');self.assertEqual(v['recommendation'],'NO VERIFIED EDGE')
+  self.assertAlmostEqual(v['sides'][0]['fee'],.0172);self.assertAlmostEqual(v['sides'][0]['net_ev'],.2578)
+  self.assertIsNotNone(evaluate(c,.7,book,{'fee_type':'quadratic_with_maker_fees','fee_multiplier':1})['sides'][0]['net_ev']);self.assertEqual(v['model_price_preference'],'OVER');self.assertEqual(v['recommendation'],'NO VERIFIED EDGE')
   self.assertIsNone(evaluate(c,.7,book,{})['sides'][0]['net_ev']);self.assertEqual(evaluate(c,.7,{}, {})['sides'],[])
  def test_forward_archive_then_grading_no_rewrite(self):
   live=row();final=copy.deepcopy(live);final.update(event_live='0',event_status='Finished');final['scores'][1].update(score_first='6',score_second='4')

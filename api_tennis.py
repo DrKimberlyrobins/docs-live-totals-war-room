@@ -32,10 +32,11 @@ def evidence(row,order,captured):
  pairs=[]
  for score in scores:
   raw=[score['score_first'],score['score_second']]
-  if any(not re.fullmatch(r'\d+',str(x)) for x in raw):raise ValueError('Non-integer set score needs explicit tiebreak parsing')
-  pairs.append([int(raw[i]) for i in order])
+  if any(not re.fullmatch(r'\d+(?:\.\d+|\s*\(\d+\))?',str(x)) for x in raw):raise ValueError('Set score notation unavailable')
+  # Decimal/parenthetical suffix is a tiebreak-point annotation, never fractional games.
+  pairs.append([int(re.match(r'\d+',str(raw[i]))[0]) for i in order])
  server={'First Player':0,'Second Player':1}.get(row.get('event_serve'))
- return {'provider':'API Tennis','event_key':row.get('event_key'),'captured_at':captured,'source_updated_at':None,'source_latency':'Unavailable; capture time is not source update time','server_index':order.index(server) if server is not None else None,'reported_point_score':row.get('event_game_result'),'set_scores':[[p[i] for p in pairs] for i in [0,1]],'statistics':row.get('statistics',[]),'pointbypoint':row.get('pointbypoint',[]),'status':row.get('event_status'),'players':[row.get('event_first_player'),row.get('event_second_player')],'player_keys':[row.get('first_player_key'),row.get('second_player_key')],'order':list(order),'tournament':row.get('tournament_name'),'event_type':row.get('event_type_type')}
+ return {'provider':'API Tennis','event_key':row.get('event_key'),'captured_at':captured,'source_updated_at':None,'source_latency':'Unavailable; capture time is not source update time','server_index':order.index(server) if server is not None else None,'reported_point_score':row.get('event_game_result'),'set_scores':[[p[i] for p in pairs] for i in [0,1]],'raw_set_scores':scores,'statistics':row.get('statistics',[]),'pointbypoint':row.get('pointbypoint',[]),'status':row.get('event_status'),'players':[row.get('event_first_player'),row.get('event_second_player')],'player_keys':[row.get('first_player_key'),row.get('second_player_key')],'order':list(order),'tournament':row.get('tournament_name'),'event_type':row.get('event_type_type')}
 
 RULE_SOURCES={'atp':'https://www.atptour.com/en/corporate/rulebook','wta':'https://www.wtatennis.com/wta-rules','slam':'https://www.wtatennis.com/news/3043764/tennis-explained-learn-the-game'}
 def format_rules(match):

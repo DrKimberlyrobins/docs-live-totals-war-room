@@ -19,11 +19,14 @@ def quote_cost(book,side,quantity=1):
  if left>1e-9 or not levels:return None
  return {'price':levels[0][0],'quantity_at_best':levels[0][1],'vwap':cost/quantity,'slippage':cost/quantity-levels[0][0]}
 def fee(price,multiplier):
- return float((Decimal('.07')*Decimal(str(price))*(1-Decimal(str(price)))*Decimal(str(multiplier))*100).to_integral_value(rounding=ROUND_CEILING)/100)
+ # July 7, 2026 schedule: round fee + position cost up to one centicent ($0.0001).
+ cost=Decimal(str(price)).quantize(Decimal('.0001'))
+ raw=Decimal('.07')*cost*(1-cost)*Decimal(str(multiplier))
+ return float(((cost+raw)*10000).to_integral_value(rounding=ROUND_CEILING)/10000-cost)
 def evaluate(contract,p,book,series):
  out={'basis':'Conditional on normal match completion; retirement/fair-price outcomes not priced','captured_at':utc(),'sides':[],'recommendation':'NO VERIFIED EDGE'}
  multiplier=series.get('fee_multiplier');fee_type=series.get('fee_type')
- fee_known=fee_type=='quadratic' and multiplier is not None and math.isfinite(float(multiplier)) and float(multiplier)>=0
+ fee_known=fee_type in ['quadratic','quadratic_with_maker_fees'] and multiplier is not None and math.isfinite(float(multiplier)) and float(multiplier)>=0
  for side,prob in [('yes',p),('no',1-p)]:
   q=quote_cost(book,side)
   if q is None:continue
@@ -33,6 +36,6 @@ def evaluate(contract,p,book,series):
  best=max(priced,key=lambda s:s['net_ev']) if priced else None
  out['best_side']=best
  out['model_price_preference']=('OVER' if best['side']=='yes' else 'UNDER') if best and best['net_ev']>0 and contract['scope']=='match_completed_games' else (best['side'].upper() if best and best['net_ev']>0 else 'NO POSITIVE MODEL VALUE')
- out['fee_status']='Series quadratic fee verified' if fee_known else 'Applicable fee not verified; net EV unavailable'
+ out['fee_status']='Series quadratic taker fee; July 2026 centicent cost rounding' if fee_known else 'Applicable fee not verified; net EV unavailable'
  out['depth_status']='One-contract executable depth received' if out['sides'] else 'No one-contract executable depth'
  return out
