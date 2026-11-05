@@ -28,3 +28,10 @@ Official scoring references: https://www.itftennis.com/media/7221/2026-rules-of-
 
 ## API Tennis connection
 The collector reads API_TENNIS_KEY only from the GitHub Actions secret. REST live responses enrich uniquely matched ATP/WTA singles with serving identity, point score, set scores, and returned statistics. No key or authenticated URL is saved. Source-origin timestamps and format are not supplied by this adapter; automatic recommendations remain blocked. GitHub scheduled snapshots are not a continuous point-level stream.
+
+## Automatic forecasts, November 5 update
+API Tennis live and fixture responses now drive the engine automatically. Both players' match Service Points Won count is used; first- and second-serve counts are summed only if the overall count is absent. Missing serving samples use explicitly labeled league priors. Server and current point score must be present; inconsistent set transitions wait for the next capture. Tour singles use ATP/WTA best-of-three advantage-game tiebreak rules. Grand Slam main-draw presets use a 10-point deciding tiebreak (men best of five, women best of three); special events and Slam qualifying need separate presets.
+
+Predictions are conditional on the captured state and normal completion. Source-origin delay is not supplied by this provider. The engine does not claim to remove this uncertainty. Live order-book bid complements supply one-contract executable asks/VWAP and available size. Applicable quadratic series fees are fetched; unknown fee types leave net EV unavailable. Conditional model value does not establish a verified edge. GitHub runs nominally every five minutes and can be delayed; browser refresh does not make an old snapshot current.
+
+Forward forecasts are immutable JSONL and grade into a separate file using completed set evidence. No trades, assumed fills, retrospective forecasts, or paper profits are created. The picker pre-fills automatically sourced model inputs for review.

@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {contract,renderBoard} from '../tennis-dashboard.mjs';
+const c={title:'Over 20.5 games',status:'active',model_p_yes:.7,value:{captured_at:'2026-11-05T12:00Z',model_price_preference:'OVER',sides:[{side:'yes',probability:.7,price:.5,quantity_at_best:10,vwap:.5,fee:.02,net_ev:.18}]}};
+test('stale quote cannot show a current price preference',()=>{const h=contract(c,Date.parse('2026-11-05T12:02Z'));assert.ok(h.includes('Historical snapshot'));assert.ok(!h.includes('Snapshot model price preference: OVER'));});
+test('fresh conditional quote shows fee and real depth',()=>{const h=contract(c,Date.parse('2026-11-05T12:00:10Z'));assert.ok(h.includes('Snapshot model price preference: OVER'));assert.ok(h.includes('$0.020'));assert.ok(h.includes('10.00'));});
+test('provider text is escaped and empty live slate is explicit',()=>{const h=renderBoard({matches:[],provider:{status:'<script>'},simulations_completed:0,matched_count:0,forecast_count:0,grading:{rows:[]},unmatched_contracts:[]},'',Date.now());assert.ok(!h.includes('<script>'));assert.ok(h.includes('No active ATP/WTA singles'));});
