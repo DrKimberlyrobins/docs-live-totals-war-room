@@ -29,6 +29,7 @@ async function renderPaper(){
 async function renderTennis(){
  try{
   const r=await fetch(base+'data/tennis.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('Tennis feed HTTP '+r.status);const t=await r.json();if(view!=='tennis')return;
+  $('#metrics').innerHTML=[[t.matches.filter(g=>g.state==='in').length,'Active tennis matches'],[t.matched_count,'Matched tennis contracts'],[0,'Tennis forecasts'],[0,'Tennis paper positions']].map(([v,l])=>'<div class="metric"><strong>'+v+'</strong><small>'+l+'</small></div>').join('');
   const age=(Date.now()-Date.parse(t.generated_at))/1000;
   const ct=c=>`<details><summary>${esc(c.title)} · ${esc(c.status)}</summary><p>${esc(c.ticker)}<br>Scope: completed games in the full tennis match<br>Quoted YES bid / ask: ${esc(c.yes_bid_dollars)} / ${esc(c.yes_ask_dollars)}<br>Quoted NO bid / ask: ${esc(c.no_bid_dollars)} / ${esc(c.no_ask_dollars)}<br>Volume ${esc(c.volume_fp)} · ${esc(c.depth_status)}<br>Retrieved ${esc(time(c.captured_at))} · Market update ${esc(time(c.updated_time))}</p><pre>${esc(c.rules_primary)}
 ${esc(c.rules_secondary)}</pre></details>`;
