@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from collect import get,paged,utc
 ROOT=pathlib.Path(__file__).parent
 SERIES={'atp':'KXATPGTOTAL','wta':'KXWTAGTOTAL'}
+WINNER_SERIES={'atp':'KXATPMATCH','wta':'KXWTAMATCH'}
 def normalized(s):return re.sub(r'[^a-z0-9]','',unicodedata.normalize('NFKD',s).encode('ascii','ignore').decode().lower())
 def parse_matches(raw,tour,date,captured,url):
  matches=[]
@@ -26,9 +27,14 @@ def parse_matches(raw,tour,date,captured,url):
  return matches
 
 def market_matches(match,market):
- if not market['ticker'].startswith(SERIES[match['tour']]+'-'):return False
+ if not any(market['ticker'].startswith(s+'-') for s in [SERIES[match['tour']],WINNER_SERIES[match['tour']]]):return False
  text=normalized(market.get('rules_primary','')+' '+market.get('rules_secondary',''))
- if not all(normalized(name) in text for name in match['players']):return False
+ if market['ticker'].startswith(WINNER_SERIES[match['tour']]+'-'):
+  target=normalized(market.get('yes_sub_title') or '')
+  if target not in [normalized(p) for p in match['players']]:return False
+  rule_words=re.sub(r'[^a-z0-9]+',' ',unicodedata.normalize('NFKD',market.get('rules_primary','')+' '+market.get('rules_secondary','')).encode('ascii','ignore').decode().lower()).split()
+  if not all(normalized(p) in text or normalized(p.split()[-1]) in rule_words for p in match['players']):return False
+ elif not all(normalized(p) in text for p in match['players']):return False
  day=dt.datetime.fromisoformat(match['date'].replace('Z','+00:00')).strftime('%y%b%d').upper()
  return '-'+day in market.get('event_ticker','')
 
@@ -42,18 +48,61 @@ def run(date=None):
   for f,t in jobs.items():
    try:matches+=f.result()
    except Exception as e:errors.append(t+' score feed: '+str(e))
-  jobs={pool.submit(paged,'/markets','markets',series_ticker=s,status='open'):t for t,s in SERIES.items()}
-  for f,t in jobs.items():
+  jobs={pool.submit(paged,'/markets','markets',series_ticker=s,status='open'):(t,kind) for mapping,kind in [(SERIES,'match_completed_games'),(WINNER_SERIES,'match_winner')] for t,s in mapping.items()}
+  for f,(t,kind) in jobs.items():
    try:
-    captured=utc()
-    for m in f.result():
-     row={k:m.get(k) for k in ['ticker','event_ticker','title','rules_primary','rules_secondary','floor_strike','strike_type','status','updated_time','yes_ask_dollars','yes_bid_dollars','no_ask_dollars','no_bid_dollars','yes_ask_size_fp','volume_fp']};row.update(captured_at=captured,tour=t,scope='match_completed_games',depth_status='Order-book depth not verified');markets.append(row)
+    retrieved=f.result();captured=utc()
+    for m in retrieved:
+     row={k:m.get(k) for k in ['ticker','event_ticker','title','rules_primary','rules_secondary','floor_strike','strike_type','status','updated_time','yes_ask_dollars','yes_bid_dollars','no_ask_dollars','no_bid_dollars','yes_ask_size_fp','volume_fp','yes_sub_title','no_sub_title']};row.update(captured_at=captured,tour=t,scope=kind,depth_status='Order-book depth not verified');markets.append(row)
    except Exception as e:errors.append(t+' Kalshi totals: '+str(e))
  unmatched=[]
  for m in markets:
   candidates=[g for g in matches if market_matches(g,m)]
   if len(candidates)==1:candidates[0]['contracts'].append(m)
   else:unmatched.append(m)
- result={'generated_at':utc(),'date':date.isoformat(),'matches':sorted(matches,key=lambda x:({'in':0,'pre':1,'post':2}.get(x['state'],3),x['date'])),'market_count':len(markets),'matched_count':sum(len(m['contracts']) for m in matches),'unmatched_contracts':unmatched,'errors':errors,'simulations_completed':0,'paper_positions':0,'limitations':['This is a match and market discovery board, not a completed tennis prediction engine','ESPN website-feed licensing, latency and serving semantics are unverified','Sportradar live timelines investigated but not connected; authenticated provider access is required','No tennis probabilities, EV, simulated runs or paper entries are fabricated','Retirements may resolve some contracts to a fair price rather than a binary win or loss']}
+ # Optional authenticated point-level source; no credential enters the output JSON.
+ from tennis_live import fetch_live,convert,calculate,name
+ import hashlib
+ from audit import read_rows
+ out=ROOT/'data';out.mkdir(exist_ok=True);forecast_path=out/'tennis_forecasts.jsonl';grade_path=out/'tennis_grades.jsonl';forecast_path.touch(exist_ok=True);grade_path.touch(exist_ok=True)
+ forecasts=read_rows(forecast_path);seen={f['fingerprint'] for f in forecasts}
+ try:payload,provider=fetch_live(utc())
+ except Exception as e:payload=None;provider={'connected':False,'status':str(e)};errors.append('Point-level provider unavailable: '+str(e))
+ for match in matches:
+  if match['state']!='in' or payload is None:continue
+  try:
+   candidates=[s for s in payload.get('summaries',[]) if {name(c.get('name','')) for c in s.get('sport_event',{}).get('competitors',[])}=={name(p) for p in match['players']}]
+   if len(candidates)!=1:raise ValueError('No unique point-level source match')
+   state=convert(candidates[0],match);projection=calculate(state,ROOT)
+   if (dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(provider['captured_at'])).total_seconds()>60:raise ValueError('Provider snapshot aged past 60 seconds during processing')
+   for c in match['contracts']:
+    p=None
+    if c['scope']=='match_completed_games' and c.get('strike_type')=='greater' and c.get('floor_strike') is not None:p=sum(x>float(c['floor_strike']) for x in projection['samples'])/projection['runs']
+    elif c['scope']=='match_winner':
+     target=[i for i,player in enumerate(match['players']) if name(player)==name(c.get('yes_sub_title') or '')]
+     if len(target)==1:p=projection['match_probabilities'][target[0]]
+    if p is not None:c['model_p_yes']=p;c['model_p_no']=1-p
+   del projection['samples'];match['set_scores']=[[pair[i] for pair in state['completedSets']]+[state['games'][i]] for i in [0,1]];match['completed_games']=sum(map(sum,state['completedSets']))+sum(state['games']);match['captured_at']=provider['captured_at'];match.update(projection=projection,simulations_completed=projection['runs'],model_state=state,prediction_status='Experimental point-level forecast; uncalibrated prior and strategy assumptions')
+   fingerprint=hashlib.sha256(json.dumps({'game':match['id'],'state':state,'version':projection['model_version']},sort_keys=True).encode()).hexdigest()
+   if fingerprint not in seen:
+    record={'fingerprint':fingerprint,'timestamp':utc(),'kind':'forward_experimental_tennis','game_id':match['id'],'players':match['players'],'provider':provider,'state':state,'projection':projection,'contracts':match['contracts']}
+    with forecast_path.open('a') as f:f.write(json.dumps(record,separators=(',',':'))+'\n')
+    forecasts.append(record);seen.add(fingerprint)
+  except Exception as e:match['prediction_status']='Blocked: '+str(e)
+ grades=read_rows(grade_path);graded={g['fingerprint'] for g in grades};lookup={g['id']:g for g in matches}
+ for record in forecasts:
+  if record['fingerprint'] in graded:continue
+  final=lookup.get(record['game_id'])
+  if not final or final['state']!='post' or any(k in str(final['status']).lower() for k in ['retir','walkover','cancel','abandon','default']):continue
+  lines=final['set_scores']
+  if not lines or len(lines)!=2 or len(lines[0])!=len(lines[1]):continue
+  pairs=list(zip(*lines));wins=[sum(pair[i]>pair[1-i] for pair in pairs) for i in [0,1]]
+  def valid_set(pair):return (max(pair)==6 and min(pair)<=4) or (max(pair)==7 and min(pair) in [5,6])
+  if not all(valid_set(pair) for pair in pairs) or max(wins)!=(record['state']['bestOf']+1)//2:continue
+  winner=0 if wins[0]>wins[1] else 1;actual=sum(map(sum,lines));p=record['projection']['match_probabilities'][winner]
+  grade={'fingerprint':record['fingerprint'],'graded_at':utc(),'winner':record['players'][winner],'actual_games':actual,'total_error':record['projection']['mean']-actual,'match_brier':(1-p)**2,'favorite_correct':p>.5,'source':final['source'],'paper_profit':None}
+  with grade_path.open('a') as f:f.write(json.dumps(grade,separators=(',',':'))+'\n')
+  grades.append(grade)
+ result={'generated_at':utc(),'date':date.isoformat(),'matches':sorted(matches,key=lambda x:({'in':0,'pre':1,'post':2}.get(x['state'],3),x['date'])),'market_count':len(markets),'matched_count':sum(len(m['contracts']) for m in matches),'unmatched_contracts':unmatched,'errors':errors,'simulations_completed':sum(g['simulations_completed'] for g in matches),'paper_positions':0,'provider':provider,'forecast_count':len(forecasts),'grading':{'count':len(grades),'rows':grades},'limitations':['Independent 10,000-run player and totals engine is available in manual-input mode; automatic live provider access is not connected','ESPN website-feed licensing, latency and serving semantics are unverified','Sportradar live timelines investigated but not connected; authenticated provider access is required','Browser analyses are conditional on supplied inputs and remain separate from repository paper results','Retirements may resolve some contracts to a fair price rather than a binary win or loss']}
  out=ROOT/'data';out.mkdir(exist_ok=True);(out/'tennis.json').write_text(json.dumps(result,separators=(',',':')));print(json.dumps({k:result[k] for k in ['generated_at','market_count','matched_count','errors']}));return result
 if __name__=='__main__':run()

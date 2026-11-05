@@ -9,3 +9,8 @@ class TennisTests(unittest.TestCase):
   g=parse_matches(self.fixture(),'wta',dt.date(2026,11,5),'now','fixture')[0];m={'ticker':'KXWTAGTOTAL-26NOV05ONEtwo-20','event_ticker':'KXWTAGTOTAL-26NOV05ONEtwo','rules_primary':'Player One vs Player Two'};self.assertTrue(market_matches(g,m));m['ticker']='KXATPGTOTAL-26NOV05ONEtwo-20';self.assertFalse(market_matches(g,m));m['ticker']='KXWTAGTOTAL-26NOV05ONEtwo-20';m['event_ticker']='KXWTAGTOTAL-26NOV06ONEtwo';self.assertFalse(market_matches(g,m))
  def test_doubles_not_silently_treated_as_singles(self):
   d=self.fixture();d['events'][0]['groupings'][0]['grouping']['slug']='womens-doubles';self.assertEqual(parse_matches(d,'wta',dt.date(2026,11,5),'now','fixture'),[])
+
+class WinnerMatchTests(unittest.TestCase):
+ def test_winner_rule_surnames_require_exact_yes_player_and_date(self):
+  g={'tour':'atp','players':['Arthur Fils','Taylor Fritz'],'date':'2026-11-05T12:00Z'};m={'ticker':'KXATPMATCH-26NOV05FILFRI-FRI','event_ticker':'KXATPMATCH-26NOV05FILFRI','yes_sub_title':'Taylor Fritz','rules_primary':'If Taylor Fritz wins the Fils vs Fritz professional tennis match'}
+  self.assertTrue(market_matches(g,m));m['yes_sub_title']='Unknown Fritz';self.assertFalse(market_matches(g,m));m['yes_sub_title']='Taylor Fritz';m['rules_primary']='If Taylor Fritz wins a different match';self.assertFalse(market_matches(g,m))

@@ -25,6 +25,8 @@ jobs:
       - run: |
           mkdir -p public/data
           cp index.html public/
+          cp tennis-engine.mjs public/
+          cp tennis-picker.mjs public/
           cp data/board.json public/data/
           touch public/.nojekyll
       - uses: actions/upload-pages-artifact@v3
