@@ -200,7 +200,7 @@ def write_sheets_board(out, board):
    has_score = game['state'] in ('in', 'post') and away is not None and home is not None
    rows.writerow([
     'NBA' if game['league'] == 'nba' else 'NCAA men', game['name'], game['date'],
-    game['status'], game['period'] if has_score else None, game['clock'] if has_score else None,
+    game['status'], game['period'] if has_score else None, f"{game['clock']} left" if has_score and game.get('clock') else None,
     away if has_score else None, home if has_score else None, away + home if has_score else None,
     projection.get('mean'), projection.get('p10'), projection.get('p90'), projection.get('runs'),
     len(game['contracts']), game.get('score_captured_at'), board['generated_at'], game['id'],
