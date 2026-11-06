@@ -39,5 +39,12 @@ async function renderTennis(){
   if(view==='tennis')$('#games').innerHTML=dashboard.renderBoard(t,base);
  }catch(e){$('#games').innerHTML='<p>Tennis board unavailable: '+esc(e.message)+'</p>'}
 }
-document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;document.querySelectorAll('[data-view]').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});$('#league').onchange=render;$('#refresh').onclick=()=>{records=[];review=null;paperReport=null;load()};setInterval(load,30000);load();
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;document.querySelectorAll('[data-view]').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});$('#league').onchange=render;$('#refresh').onclick=()=>{records=[];review=null;paperReport=null;snapshotRefChecked=0;load()};
+const initialParams = new URLSearchParams(location.search);
+const initialLeague = initialParams.get('league');
+if (['nba','cbb'].includes(initialLeague)) $('#league').value = initialLeague;
+for (const button of document.querySelectorAll('[data-view]')) {
+  if (button.dataset.view === initialParams.get('view')) { button.click(); break; }
+}
+setInterval(load,30000);load();
 </script></body></html>
