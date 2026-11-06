@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Read-only collection and append-only forward evidence. Python standard library."""
-import argparse,concurrent.futures,datetime as dt,json,os,pathlib,time,urllib.request,urllib.parse,hashlib
+import argparse,concurrent.futures,csv,datetime as dt,json,os,pathlib,time,urllib.request,urllib.parse,hashlib
 from zoneinfo import ZoneInfo
 from engine import *
 ROOT=pathlib.Path(__file__).parent
@@ -181,6 +181,31 @@ def run(date):
  from audit import write_review
  write_review(out)
  temp=out/'board.tmp';temp.write_text(json.dumps(board,separators=(',',':')));temp.replace(out/'board.json')
+ write_sheets_board(out, board)
  print(json.dumps({k:board[k] for k in ['generated_at','market_count','matched_count','forecast_count','new_forecasts','errors']}))
+def write_sheets_board(out, board):
+ """Publish a flat, timestamped view of the same collector snapshot."""
+ fields = [
+  'League', 'Matchup', 'Tip (UTC)', 'Status', 'Period', 'Clock', 'Away', 'Home',
+  'Total', 'Projected total', 'P10', 'P90', 'Runs', 'Kalshi matches',
+  'Score captured (UTC)', 'Collector snapshot (UTC)', 'Game ID',
+ ]
+ temp = out / 'sheets-board.tmp'
+ with temp.open('w', newline='', encoding='utf-8') as stream:
+  rows = csv.writer(stream)
+  rows.writerow(fields)
+  for game in sorted(board['games'], key=lambda g: ({'in': 0, 'pre': 1, 'post': 2}.get(g['state'], 3), g['date'])):
+   projection = game.get('projection') or {}
+   away, home = game['scores']
+   has_score = game['state'] in ('in', 'post') and away is not None and home is not None
+   rows.writerow([
+    'NBA' if game['league'] == 'nba' else 'NCAA men', game['name'], game['date'],
+    game['status'], game['period'] if has_score else None, game['clock'] if has_score else None,
+    away if has_score else None, home if has_score else None, away + home if has_score else None,
+    projection.get('mean'), projection.get('p10'), projection.get('p90'), projection.get('runs'),
+    len(game['contracts']), game['score_captured_at'], board['generated_at'], game['id'],
+   ])
+ temp.replace(out / 'sheets-board.csv')
+
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--date');args=p.parse_args();run(dt.date.fromisoformat(args.date) if args.date else dt.datetime.now(ZoneInfo('America/Chicago')).date())
