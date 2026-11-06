@@ -86,7 +86,7 @@ def run(date=None):
   for i,n in enumerate(names):
    full={m['yes_sub_title'] for m in markets if m['scope']=='match_winner' and m['tour']==tour and m.get('yes_sub_title') and player_matches(m['yes_sub_title'],n)}
    if len(full)==1:names[i]=full.pop()
-  candidates=[g for g in matches if g['tour']==tour and g['date'][:10]==row.get('event_date') and any(all(player_matches(g['players'][i],names[o[i]]) for i in [0,1]) for o in [(0,1),(1,0)])]
+  candidates=[g for g in matches if tour!='other' and g['tour']==tour and g['date'][:10]==row.get('event_date') and any(all(player_matches(g['players'][i],names[o[i]]) for i in [0,1]) for o in [(0,1),(1,0)])]
   if len(candidates)==1:
    game=candidates[0];game['api_event_key']=str(row['event_key'])
    if active:game['state']='in';game['status']=status
