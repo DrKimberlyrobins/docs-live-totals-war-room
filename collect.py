@@ -203,7 +203,7 @@ def write_sheets_board(out, board):
     game['status'], game['period'] if has_score else None, game['clock'] if has_score else None,
     away if has_score else None, home if has_score else None, away + home if has_score else None,
     projection.get('mean'), projection.get('p10'), projection.get('p90'), projection.get('runs'),
-    len(game['contracts']), game['score_captured_at'], board['generated_at'], game['id'],
+    len(game['contracts']), game.get('score_captured_at'), board['generated_at'], game['id'],
    ])
  temp.replace(out / 'sheets-board.csv')
 
