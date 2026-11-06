@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>DOC'S LIVE TOTALS WAR ROOM</title><style>
 :root{font-family:Arial,sans-serif;color:#151515;background:#fff;font-size:16px}*{box-sizing:border-box}body{margin:0}header,main,footer{max-width:1280px;margin:auto;padding:24px}header{border-bottom:2px solid #161616;padding-bottom:18px}h1{font-size:clamp(23px,4vw,38px);letter-spacing:-1.2px;margin:9px 0}h2{font-size:20px}p{line-height:1.55}small,.muted{color:#545454}.eyebrow{font-size:12px;letter-spacing:2px;font-weight:bold}.status{border:1px solid #ccc;padding:14px;line-height:1.5;margin:16px 0}.controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:20px 0}button,select,input{font:inherit;border:1px solid #bbb;padding:10px 14px;background:white;border-radius:5px;color:#151515}button{cursor:pointer}button[aria-pressed=true]{background:#171717;color:white;border-color:#171717}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.metric{border:1px solid #ddd;padding:16px}.metric strong{display:block;font-size:29px;margin-bottom:5px}.game{border:1px solid #ccc;margin:14px 0;border-radius:8px;overflow:hidden}.gamehead{padding:19px;display:grid;grid-template-columns:2fr 1fr 1.3fr;gap:20px}.teams{font-size:18px;line-height:1.6;font-weight:600}.score{font-size:32px;letter-spacing:-1px}.tag{font-size:11px;font-weight:bold;letter-spacing:.6px;text-transform:uppercase;display:inline-block;border:1px solid #aaa;padding:4px 7px;margin-bottom:7px}.projection{font-size:30px;font-weight:bold}.detail{padding:0 19px 19px}summary{cursor:pointer;font-weight:bold;padding:13px 0}details{border-top:1px solid #ddd}table{border-collapse:collapse;width:100%;font-size:13px}td,th{text-align:left;padding:10px 8px;border-bottom:1px solid #ddd;vertical-align:top}.scroll{overflow:auto}.notice{background:#f5f5f5;padding:13px;line-height:1.5}.verified{background:#e7f7ed;color:#07552d}.empty{padding:45px 10px;text-align:center;border:1px solid #ccc}a{color:inherit}pre{white-space:pre-wrap;font-size:12px;overflow-wrap:anywhere}.two{display:grid;grid-template-columns:1fr 1fr;gap:22px}footer{border-top:1px solid #ddd;font-size:13px}.stale{font-weight:bold;text-decoration:underline}@media(max-width:700px){header,main,footer{padding:16px}.metrics{grid-template-columns:1fr 1fr}.gamehead{grid-template-columns:1fr 1fr;gap:10px}.teams{grid-column:1/-1}.two{grid-template-columns:1fr}.metric strong{font-size:23px}button,select,input{padding:9px}.score,.projection{font-size:27px}}
-</style></head><body><header><div class="eyebrow">DOC'S BASKETBALL INTELLIGENCE • READ ONLY</div><h1>LIVE TOTALS WAR ROOM</h1><p>Score. Possessions. Remaining points. Independent evidence.</p><small>NBA + NCAA Division I men's schedule • Kalshi market comparison • Forward experimental forecasts</small></header><main><div id="health" class="status" role="status">Connecting to the latest collector snapshot…</div><div class="controls"><label>League <select id="league"><option value="all">All basketball</option><option value="nba">NBA</option><option value="cbb">College basketball</option></select></label><button data-view="tennis" aria-pressed="false">Tennis</button><button data-view="today" aria-pressed="true">Today</button><button data-view="in" aria-pressed="false">Live</button><button data-view="pre" aria-pressed="false">Upcoming</button><button data-view="post" aria-pressed="false">Previous Games</button><button data-view="paper" aria-pressed="false">Paper test</button><button data-view="archive" aria-pressed="false">Forecast archive</button><button id="refresh">Refresh now</button></div><div class="metrics" id="metrics"></div><div class="notice"><b>Experimental model — no verified edges yet.</b> League priors and estimated possessions are labeled in each game. Verified team ratings, lineups, guaranteed source latency, and calibration are pending. Unverified settlement rules block contract probabilities. No orders are placed.</div><section id="live-scores" class="status" aria-label="Basketball scoreboard" hidden></section><section id="games" aria-live="polite"></section><details><summary>Sources, model and operating limits</summary><div class="two"><div><h2>Connected feeds</h2><p>ESPN public scoreboard and box-score website endpoints. This is an undocumented website feed: licensing for redistribution, rate limits, delay guarantees and service-level agreement have not been established. A successful request does not verify that a clock is current.</p><p>Kalshi official public market-data API: series discovery, open scoring contracts and full-game order books. Current contract rules are shown verbatim.</p><p><a href="https://docs.kalshi.com/getting_started/quick_start_market_data">Kalshi API documentation</a> · <a href="https://kalshi.com/fee-schedule">Current fee schedule</a></p></div><div><h2>How the first model works</h2><p>NBA: 48 minutes, four 12-minute quarters. College men: 40 minutes, two 20-minute halves. Overtime periods: five minutes. Possessions estimated from FGA + FTA coefficient − offensive rebounds + turnovers. Coefficients: NBA .44, college .475.</p><p>League fallback pace: NBA 100, college 69 possessions per team. Fallback scoring: 1.13 / 1.04 points per possession. These are explicit uncalibrated assumptions, not current team ratings. Live pace shrinks toward the prior with 12 minutes of prior weight; efficiency uses 30 possessions of prior weight. Shooting percentages are not blindly extrapolated.</p><p>10,000 seeded simulations include tempo and efficiency uncertainty, late-foul and blowout scenarios, scoring variance and repeated overtime when tied. Team-specific rotations, fatigue, injury impact, quarter/half simulation and exact play-by-play possession tracking are pending.</p></div></div><p>Quote costs use complementary order-book bids, one-contract VWAP, depth, spread and the series fee multiplier when verified. Fee: ceil to cent(.07 × quantity × price × (1 − price) × multiplier). No liquidity means no executable quote. Static snapshots become stale after 90 seconds; recommendations always remain blocked while feed latency and model calibration are unverified.</p><p>Sportradar offers official NBA data and NCAA coverage with authenticated commercial access; it is investigated but not connected. No paid provider credentials were supplied. Automated GitHub collection is best-effort and may be delayed.</p></details></main><footer>DOC'S LIVE TOTALS WAR ROOM • Model <span id="version">—</span> • Forecast evidence is append-only. Results are stored separately. No backtests or invented historical wins.</footer><script>
+.lineup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:0 18px}.lineup-grid>p{grid-column:1/-1;margin:5px 0}.lineup-grid ul{padding-left:20px}.lineup-grid h3{font-size:16px}</style></head><body><header><div class="eyebrow">DOC'S BASKETBALL INTELLIGENCE • READ ONLY</div><h1>LIVE TOTALS WAR ROOM</h1><p>Score. Possessions. Remaining points. Independent evidence.</p><small>NBA + NCAA Division I men's schedule • Kalshi market comparison • Forward experimental forecasts</small></header><main><div id="health" class="status" role="status">Connecting to the latest collector snapshot…</div><div class="controls"><label>League <select id="league"><option value="all">All basketball</option><option value="nba">NBA</option><option value="cbb">College basketball</option></select></label><button data-view="tennis" aria-pressed="false">Tennis</button><button data-view="today" aria-pressed="true">Today</button><button data-view="in" aria-pressed="false">Live</button><button data-view="pre" aria-pressed="false">Upcoming</button><button data-view="post" aria-pressed="false">Previous Games</button><button data-view="paper" aria-pressed="false">Paper test</button><button data-view="archive" aria-pressed="false">Forecast archive</button><button id="refresh">Refresh now</button></div><div class="metrics" id="metrics"></div><div class="notice"><b>Experimental model — no verified edges yet.</b> League priors and estimated possessions are labeled in each game. Verified team ratings, lineups, guaranteed source latency, and calibration are pending. Unverified settlement rules block contract probabilities. No orders are placed.</div><section id="live-scores" class="status" aria-label="Basketball scoreboard" hidden></section><section id="games" aria-live="polite"></section><details><summary>Sources, model and operating limits</summary><div class="two"><div><h2>Connected feeds</h2><p>ESPN public scoreboard and box-score website endpoints. This is an undocumented website feed: licensing for redistribution, rate limits, delay guarantees and service-level agreement have not been established. A successful request does not verify that a clock is current.</p><p>Kalshi official public market-data API: series discovery, open scoring contracts and full-game order books. Current contract rules are shown verbatim.</p><p><a href="https://docs.kalshi.com/getting_started/quick_start_market_data">Kalshi API documentation</a> · <a href="https://kalshi.com/fee-schedule">Current fee schedule</a></p></div><div><h2>How the first model works</h2><p>NBA: 48 minutes, four 12-minute quarters. College men: 40 minutes, two 20-minute halves. Overtime periods: five minutes. Possessions estimated from FGA + FTA coefficient − offensive rebounds + turnovers. Coefficients: NBA .44, college .475.</p><p>League fallback pace: NBA 100, college 69 possessions per team. Fallback scoring: 1.13 / 1.04 points per possession. These are explicit uncalibrated assumptions, not current team ratings. Live pace shrinks toward the prior with 12 minutes of prior weight; efficiency uses 30 possessions of prior weight. Shooting percentages are not blindly extrapolated.</p><p>10,000 seeded simulations include tempo and efficiency uncertainty, late-foul and blowout scenarios, scoring variance and repeated overtime when tied. Team-specific rotations, fatigue, injury impact, quarter/half simulation and exact play-by-play possession tracking are pending.</p></div></div><p>Quote costs use complementary order-book bids, one-contract VWAP, depth, spread and the series fee multiplier when verified. Fee: ceil to cent(.07 × quantity × price × (1 − price) × multiplier). No liquidity means no executable quote. Static snapshots become stale after 90 seconds; recommendations always remain blocked while feed latency and model calibration are unverified.</p><p>Sportradar offers official NBA data and NCAA coverage with authenticated commercial access; it is investigated but not connected. No paid provider credentials were supplied. Automated GitHub collection is best-effort and may be delayed.</p></details></main><footer>DOC'S LIVE TOTALS WAR ROOM • Model <span id="version">—</span> • Forecast evidence is append-only. Results are stored separately. No backtests or invented historical wins.</footer><script>
 const $=s=>document.querySelector(s), esc=v=>String(v??'Unavailable').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let board=null,view='today',records=[],review=null,paperReport=null;const n=(v,d=1)=>v==null?'Unavailable':Number(v).toFixed(d),pct=v=>v==null?'Unavailable':(100*v).toFixed(1)+'%',money=v=>v==null?'Unavailable':'$'+Number(v).toFixed(3),time=v=>v?new Date(v).toLocaleString('en-US',{timeZone:'America/Chicago'})+' CT':'Unavailable';
 // Pages serves the application; raw main branch gives the latest committed collector state.
@@ -45,6 +45,83 @@ const liveFeeds = {
 };
 const liveScores = new Map();
 const liveRequests = new Set();
+const lineupPanels = new Map();
+const lineupRequests = new Set();
+
+function lineupMarkup(data, scoreboardStatus) {
+  const competition = data.header?.competitions?.[0];
+  const status = competition?.status;
+  const teams = data.boxscore?.players ?? [];
+  if (teams.length !== 2 || !status) return '<p>Lineup data unavailable.</p>';
+  const substitutions = (data.plays ?? []).filter(play => play.type?.text === 'Substitution');
+  const sourceBehind = status.period < scoreboardStatus.period ||
+    (status.period === scoreboardStatus.period && status.clock > scoreboardStatus.clock + 15);
+  const gameOver = status.type?.state === 'post';
+  const timestamp = esc(time(new Date().toISOString()));
+  const source = '<p><small>ESPN lineup snapshot: '+esc(status.type?.detail)+' · checked '+timestamp+
+    (sourceBehind ? ' · lineup feed is behind the scoreboard' : '')+'</small></p>';
+  return source + teams.map(team => {
+    const players = (team.statistics ?? []).flatMap(group => group.athletes ?? []);
+    const onFloor = players.filter(player => player.active === true && !player.didNotPlay);
+    const starters = players.filter(player => player.starter);
+    const confirmed = !gameOver && onFloor.length === 5;
+    const name = player => esc((player.athlete?.jersey != null ? '#'+player.athlete.jersey+' ' : '')+
+      (player.athlete?.displayName ?? 'Unknown player'));
+    const recent = substitutions.filter(play => String(play.team?.id) === String(team.team.id));
+    const describe = play => 'P'+esc(play.period?.number)+' · '+esc(play.clock?.displayValue)+' · '+esc(play.text);
+    const starterEvents = recent.filter(play => play.participants?.some(person =>
+      starters.some(player => String(player.athlete?.id) === String(person.athlete?.id))));
+    const bench = confirmed ? starters.filter(player => player.active === false).map(player => {
+      const lastOut = recent.findLast(play => String(play.participants?.[1]?.athlete?.id) === String(player.athlete?.id));
+      return '<li>'+name(player)+(lastOut ? ' · '+describe(lastOut) : '')+'</li>';
+    }) : [];
+    return '<section><h3>'+esc(team.team.displayName)+'</h3>'+
+      (confirmed ? '<ul>'+onFloor.map(player => '<li>'+name(player)+(player.starter ? ' · Starter' : '')+'</li>').join('')+'</ul>' :
+        '<p>'+(gameOver ? 'Game final.' : 'Current five unavailable from ESPN.')+'</p>')+
+      (bench.length ? '<strong>Starters on the bench</strong><ul>'+bench.join('')+'</ul>' : '')+
+      '<strong>Latest starter substitutions</strong>'+
+      (starterEvents.length ? '<ul>'+starterEvents.slice(-4).reverse().map(play => '<li>'+describe(play)+'</li>').join('')+'</ul>' :
+        '<p>No starter substitutions reported yet.</p>')+'</section>';
+  }).join('');
+}
+
+function mountLineupPanels(panel) {
+  for (const slot of panel.querySelectorAll('[data-lineup-game]')) {
+    const id = slot.dataset.lineupGame;
+    const game = liveScores.get('nba')?.games.get(id);
+    if (!game) continue;
+    let details = lineupPanels.get(id);
+    if (!details) {
+      details = document.createElement('details');
+      details.innerHTML = '<summary>Who’s on the floor?</summary><div class="two">Open to load the NBA lineup.</div>';
+      details.addEventListener('toggle', () => {
+        if (details.open) refreshLineup(id);
+      });
+      lineupPanels.set(id, details);
+    }
+    slot.append(details);
+  }
+}
+
+async function refreshLineup(id) {
+  const panel = lineupPanels.get(id);
+  const game = liveScores.get('nba')?.games.get(id);
+  if (!panel?.open || !panel.isConnected || !game || lineupRequests.has(id)) return;
+  const body = panel.lastElementChild;
+  lineupRequests.add(id);
+  try {
+    const response = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event='+encodeURIComponent(id)+'&t='+Date.now(), {
+      cache:'no-store', signal:AbortSignal.timeout(10000)
+    });
+    if (!response.ok) throw Error('Lineup HTTP '+response.status);
+    body.innerHTML = lineupMarkup(await response.json(), game.status);
+    body.className = 'lineup-grid';
+  } catch {
+    body.textContent = 'Lineup refresh unavailable. The panel will retry while open.';
+  } finally {
+    lineupRequests.delete(id);
+  }
+}
 
 function selectedLiveLeagues() {
   if (view !== 'in') return [];
@@ -65,6 +142,7 @@ function syncLiveScores() {
     return heading+' · checked '+esc(time(data.checkedAt))+(data.rows.length ? data.rows.join('') :
       '<p>No games in progress on this scoreboard.</p>');
   }).join('')+'<small>Scoreboards checked every 15 seconds. Forecast cards below use their own saved score and clock.</small>';
+  mountLineupPanels(panel);
   for (const league of leagues) {
     if (!liveScores.has(league)) refreshLiveScore(league);
   }
@@ -82,12 +160,14 @@ async function refreshLiveScore(league) {
     });
     if (!response.ok) throw Error('Scoreboard HTTP '+response.status);
     const data = await response.json();
-    const rows = data.events.filter(game => game.status.type.state === 'in').map(game => {
+    const active = data.events.filter(game => game.status.type.state === 'in');
+    const rows = active.map(game => {
       const teams = game.competitions[0].competitors;
       const score = teams.map(team => esc(team.team.displayName)+' '+esc(team.score)).join(' · ');
-      return '<p><strong>'+score+'</strong> · '+esc(game.status.type.detail)+'</p>';
+      return '<p><strong>'+score+'</strong> · '+esc(game.status.type.detail)+'</p>'+
+        (league === 'nba' ? '<div data-lineup-game="'+esc(game.id)+'"></div>' : '');
     });
-    liveScores.set(league, {rows, checkedAt:new Date().toISOString()});
+    liveScores.set(league, {rows, games:new Map(active.map(game => [String(game.id), game])), checkedAt:new Date().toISOString()});
   } catch {
     liveScores.set(league, {error:true});
   } finally {
@@ -97,7 +177,9 @@ async function refreshLiveScore(league) {
 }
 
 function refreshLiveScores() {
-  selectedLiveLeagues().forEach(refreshLiveScore);
+  const leagues = selectedLiveLeagues();
+  leagues.forEach(refreshLiveScore);
+  if (leagues.includes('nba')) lineupPanels.forEach((_, id) => refreshLineup(id));
 }
 
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;document.querySelectorAll('[data-view]').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});$('#league').onchange=render;$('#refresh').onclick=()=>{records=[];review=null;paperReport=null;snapshotRefChecked=0;refreshLiveScores();load()};
