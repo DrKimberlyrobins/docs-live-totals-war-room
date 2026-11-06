@@ -74,10 +74,7 @@ async function refreshLiveScore(league) {
   if (liveRequests.has(league)) return;
   liveRequests.add(league);
   const feed = liveFeeds[league];
-  // Include yesterday in Central Time so games that cross midnight stay visible.
-  const centralDate = new Date().toLocaleDateString('en-CA', {timeZone:'America/Chicago'});
-  const previous = new Date(Date.parse(centralDate+'T00:00:00Z')-86400000).toISOString().slice(0,10);
-  const dates = [previous, centralDate].map(date => date.replaceAll('-','')).join('-');
+  const dates = new Date().toLocaleDateString('en-CA', {timeZone:'America/Chicago'}).replaceAll('-','');
   try {
     const params = new URLSearchParams({...feed.params, dates, t:String(Date.now())});
     const response = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/'+feed.path+'/scoreboard?'+params, {
