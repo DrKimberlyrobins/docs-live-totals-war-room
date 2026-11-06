@@ -27,6 +27,7 @@ def parse_matches(raw,tour,date,captured,url):
  return matches
 
 def market_matches(match,market):
+ if match['tour'] not in SERIES:return False
  if not any(market['ticker'].startswith(s+'-') for s in [SERIES[match['tour']],WINNER_SERIES[match['tour']]]):return False
  text=normalized(market.get('rules_primary','')+' '+market.get('rules_secondary',''))
  if market['ticker'].startswith(WINNER_SERIES[match['tour']]+'-'):
@@ -73,7 +74,12 @@ def run(date=None):
  combined.update({str(r.get('event_key')):r for r in (api_rows or [])})
  for row in combined.values():
   typ=row.get('event_type_type','').lower();tour='atp' if typ=='atp singles' else 'wta' if typ=='wta singles' else None
-  if not tour:continue
+  status=str(row.get('event_status') or '')
+  terminal=any(word in status.lower() for word in ('finish','retir','walkover','cancel','abandon'))
+  active=str(row.get('event_live'))=='1' and not terminal
+  # Show live events outside our ATP/WTA singles model without running that model on them.
+  if not tour and not active:continue
+  tour=tour or 'other'
   names=[row.get('event_first_player',''),row.get('event_second_player','')]
   if not all(names):continue
   # Resolve abbreviations only through a unique Kalshi full-player name.
@@ -83,8 +89,7 @@ def run(date=None):
   candidates=[g for g in matches if g['tour']==tour and g['date'][:10]==row.get('event_date') and any(all(player_matches(g['players'][i],names[o[i]]) for i in [0,1]) for o in [(0,1),(1,0)])]
   if len(candidates)==1:
    game=candidates[0];game['api_event_key']=str(row['event_key'])
-   status=str(row.get('event_status',''))
-   if row.get('event_live')=='1' and status.lower().startswith('set '):game['state']='in';game['status']=status
+   if active:game['state']='in';game['status']=status
    elif 'finished' in status.lower():
     game['state']='post';game['status']=status
     try:
@@ -93,12 +98,11 @@ def run(date=None):
     except (ValueError,StopIteration):pass
    continue
   if candidates:continue
-  status=str(row.get('event_status',''));active=row.get('event_live')=='1' and status.lower().startswith('set ')
-  state='in' if active else 'post' if any(x in status.lower() for x in ['finish','retir','walkover','cancel','abandon']) else 'pre'
+  state='in' if active else 'post' if terminal else 'pre'
   try:
    ev=api_evidence(row,(0,1),api_captured);lines=ev['set_scores']
   except (KeyError,ValueError,TypeError):lines=[[],[]]
-  matches.append({'id':tour+':api:'+str(row['event_key']),'api_event_key':str(row['event_key']),'tour':tour,'players':names,'date':row['event_date']+'T'+str(row.get('event_time') or '00:00')+':00Z','tournament':row.get('tournament_name'),'round':row.get('tournament_round'),'state':state,'status':status or 'Scheduled','set_scores':lines,'completed_games':sum(map(sum,lines)) if any(lines) else None,'reported_format_periods':None,'captured_at':api_captured,'source':ENDPOINT,'contracts':[],'missing':['Source-origin latency','Historical surface-adjusted serving ability'],'simulations_completed':0,'prediction_status':'Scheduled: live analysis begins when play starts' if state=='pre' else 'Final result' if state=='post' else 'Waiting for synchronized point state','notes':[]})
+  matches.append({'id':tour+':api:'+str(row['event_key']),'api_event_key':str(row['event_key']),'tour':tour,'event_type':row.get('event_type_type'),'players':names,'date':row['event_date']+'T'+str(row.get('event_time') or '00:00')+':00Z','tournament':row.get('tournament_name'),'round':row.get('tournament_round'),'state':state,'status':status or 'Scheduled','set_scores':lines,'completed_games':sum(map(sum,lines)) if any(lines) else None,'reported_format_periods':None,'captured_at':api_captured,'source':ENDPOINT,'contracts':[],'missing':['Source-origin latency','Historical surface-adjusted serving ability'],'simulations_completed':0,'prediction_status':'Scheduled: live analysis begins when play starts' if state=='pre' else 'Final result' if state=='post' else 'Waiting for synchronized point state','notes':[]})
  unmatched=[]
  for m in markets:
   candidates=[g for g in matches if market_matches(g,m)]
@@ -108,6 +112,9 @@ def run(date=None):
  forecasts=read_rows(forecast_path);seen={f['fingerprint'] for f in forecasts};series_cache={}
  for match in matches:
   if match['state']!='in':continue
+  if match['tour'] not in SERIES:
+   match['prediction_status']='Live score only · this event type is outside the ATP/WTA singles model'
+   continue
   if api_rows is None:
    match['prediction_status']='Live provider temporarily unavailable';continue
   try:
